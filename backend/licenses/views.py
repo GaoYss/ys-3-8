@@ -1,6 +1,7 @@
 from django.db.models import Q
-from rest_framework import viewsets
-from rest_framework.decorators import api_view
+from django.utils import timezone
+from rest_framework import status, viewsets
+from rest_framework.decorators import action, api_view
 from rest_framework.response import Response
 
 from .models import BorrowRecord, License
@@ -14,7 +15,7 @@ class LicenseViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         queryset = License.objects.all()
         search = self.request.query_params.get("search")
-        status = self.request.query_params.get("status")
+        status_filter = self.request.query_params.get("status")
         license_type = self.request.query_params.get("type")
 
         if search:
@@ -24,8 +25,8 @@ class LicenseViewSet(viewsets.ModelViewSet):
                 | Q(issuing_authority__icontains=search)
                 | Q(owner_department__icontains=search)
             )
-        if status:
-            queryset = queryset.filter(status=status)
+        if status_filter:
+            queryset = queryset.filter(status=status_filter)
         if license_type:
             queryset = queryset.filter(license_type=license_type)
         return queryset
@@ -44,10 +45,10 @@ class BorrowRecordViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         queryset = BorrowRecord.objects.select_related("license")
-        status = self.request.query_params.get("status")
+        status_filter = self.request.query_params.get("status")
         license_id = self.request.query_params.get("license")
-        if status:
-            queryset = queryset.filter(status=status)
+        if status_filter:
+            queryset = queryset.filter(status=status_filter)
         if license_id:
             queryset = queryset.filter(license_id=license_id)
         return queryset
@@ -59,6 +60,43 @@ class BorrowRecordViewSet(viewsets.ModelViewSet):
     def perform_update(self, serializer):
         record = serializer.save()
         refresh_borrow_status(record)
+
+    @action(detail=True, methods=["post"], url_path="approve")
+    def approve(self, request, pk=None):
+        record = self.get_object()
+        if record.status != BorrowRecord.Status.PENDING:
+            return Response(
+                {"detail": "只有待审批的申请可以批准"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        approver = request.data.get("approver", "")
+        approval_notes = request.data.get("approval_notes", "")
+        record.status = BorrowRecord.Status.BORROWED
+        record.approver = approver
+        record.approved_at = timezone.now()
+        record.approval_notes = approval_notes
+        record.save()
+        refresh_borrow_status(record)
+        serializer = self.get_serializer(record)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=["post"], url_path="reject")
+    def reject(self, request, pk=None):
+        record = self.get_object()
+        if record.status != BorrowRecord.Status.PENDING:
+            return Response(
+                {"detail": "只有待审批的申请可以拒绝"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        approver = request.data.get("approver", "")
+        approval_notes = request.data.get("approval_notes", "")
+        record.status = BorrowRecord.Status.REJECTED
+        record.approver = approver
+        record.approved_at = timezone.now()
+        record.approval_notes = approval_notes
+        record.save()
+        serializer = self.get_serializer(record)
+        return Response(serializer.data)
 
 
 @api_view(["GET"])

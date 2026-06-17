@@ -27,5 +27,7 @@ export const api = {
   listBorrowRecords: (params = {}) => request(`/borrow-records/?${new URLSearchParams(params)}`),
   createBorrowRecord: (data) => request('/borrow-records/', { method: 'POST', body: JSON.stringify(data) }),
   updateBorrowRecord: (id, data) => request(`/borrow-records/${id}/`, { method: 'PUT', body: JSON.stringify(data) }),
+  approveBorrowRecord: (id, data) => request(`/borrow-records/${id}/approve/`, { method: 'POST', body: JSON.stringify(data) }),
+  rejectBorrowRecord: (id, data) => request(`/borrow-records/${id}/reject/`, { method: 'POST', body: JSON.stringify(data) }),
   stats: () => request('/stats/'),
 }

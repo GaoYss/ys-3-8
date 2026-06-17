@@ -1,4 +1,4 @@
-import { CalendarClock, FileWarning, Handshake, TimerReset } from 'lucide-react'
+import { CalendarClock, Clock, FileWarning, Handshake, TimerReset } from 'lucide-react'
 
 import { EmptyState } from '../components/EmptyState.jsx'
 import { MetricCard } from '../components/MetricCard.jsx'
@@ -18,8 +18,10 @@ export function DashboardPage({ stats, loading }) {
 
       <div className="metrics-grid">
         <MetricCard label="证照总数" value={stats?.total_licenses} />
+        <MetricCard label="待审批申请" value={stats?.pending_approvals} tone="warning" />
         <MetricCard label="即将到期" value={stats?.expiring_licenses} tone="warning" />
         <MetricCard label="已到期" value={stats?.expired_licenses} tone="danger" />
+        <MetricCard label="借出中" value={stats?.borrowed_records} />
         <MetricCard label="逾期未还" value={stats?.overdue_returns} tone="danger" />
       </div>
 

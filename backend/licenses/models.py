@@ -54,6 +54,9 @@ class License(models.Model):
 
 class BorrowRecord(models.Model):
     class Status(models.TextChoices):
+        PENDING = "pending", "待审批"
+        APPROVED = "approved", "已批准"
+        REJECTED = "rejected", "已拒绝"
         BORROWED = "borrowed", "借出中"
         RETURNED = "returned", "已归还"
         OVERDUE = "overdue", "逾期未还"
@@ -65,19 +68,24 @@ class BorrowRecord(models.Model):
     borrow_date = models.DateField("借出日期", default=timezone.localdate)
     expected_return_date = models.DateField("预计归还日期")
     actual_return_date = models.DateField("实际归还日期", null=True, blank=True)
-    status = models.CharField("状态", max_length=32, choices=Status.choices, default=Status.BORROWED)
+    status = models.CharField("状态", max_length=32, choices=Status.choices, default=Status.PENDING)
+    approver = models.CharField("审批人", max_length=60, blank=True)
+    approved_at = models.DateTimeField("审批时间", null=True, blank=True)
+    approval_notes = models.TextField("审批备注", blank=True)
     notes = models.TextField("备注", blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        ordering = ["-borrow_date", "-created_at"]
+        ordering = ["-created_at"]
 
     def __str__(self):
         return f"{self.license.name} - {self.borrower}"
 
     @property
     def computed_status(self):
+        if self.status in (self.Status.PENDING, self.Status.REJECTED, self.Status.APPROVED):
+            return self.status
         if self.actual_return_date:
             return self.Status.RETURNED
         if self.expected_return_date < timezone.localdate():

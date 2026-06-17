@@ -14,6 +14,9 @@ export const licenseStatuses = [
 ]
 
 export const borrowStatuses = [
+  { value: 'pending', label: '待审批' },
+  { value: 'approved', label: '已批准' },
+  { value: 'rejected', label: '已拒绝' },
   { value: 'borrowed', label: '借出中' },
   { value: 'returned', label: '已归还' },
   { value: 'overdue', label: '逾期未还' },
