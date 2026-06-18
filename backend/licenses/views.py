@@ -69,10 +69,17 @@ class BorrowRecordViewSet(viewsets.ModelViewSet):
                 {"detail": "只有待审批的申请可以批准"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        approver = request.data.get("approver", "")
+
+        keeper = record.license.keeper
+        if not keeper or not keeper.strip():
+            return Response(
+                {"detail": "该证照未指定保管人，请先在证照信息中设置保管人后再审批"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         approval_notes = request.data.get("approval_notes", "")
         record.status = BorrowRecord.Status.BORROWED
-        record.approver = approver
+        record.approver = keeper.strip()
         record.approved_at = timezone.now()
         record.approval_notes = approval_notes
         record.save()
@@ -88,10 +95,17 @@ class BorrowRecordViewSet(viewsets.ModelViewSet):
                 {"detail": "只有待审批的申请可以拒绝"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        approver = request.data.get("approver", "")
+
+        keeper = record.license.keeper
+        if not keeper or not keeper.strip():
+            return Response(
+                {"detail": "该证照未指定保管人，请先在证照信息中设置保管人后再审批"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         approval_notes = request.data.get("approval_notes", "")
         record.status = BorrowRecord.Status.REJECTED
-        record.approver = approver
+        record.approver = keeper.strip()
         record.approved_at = timezone.now()
         record.approval_notes = approval_notes
         record.save()

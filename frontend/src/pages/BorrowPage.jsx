@@ -83,8 +83,13 @@ export function BorrowPage({ licenses, borrowRecords, reload, notify }) {
   }
 
   const openApprovalModal = (record, action) => {
+    const keeper = record.license_keeper || ''
+    if (!keeper.trim()) {
+      notify('该证照未指定保管人，请先在证照信息中设置保管人')
+      return
+    }
     setApprovalModal({ record, action })
-    setApprovalForm({ approver: '', approval_notes: '' })
+    setApprovalForm({ approver: keeper.trim(), approval_notes: '' })
   }
 
   const closeApprovalModal = () => {
@@ -95,11 +100,12 @@ export function BorrowPage({ licenses, borrowRecords, reload, notify }) {
     if (!approvalModal) return
     const { record, action } = approvalModal
     try {
+      const payload = { approval_notes: approvalForm.approval_notes }
       if (action === 'approve') {
-        await api.approveBorrowRecord(record.id, approvalForm)
+        await api.approveBorrowRecord(record.id, payload)
         notify('已批准借用申请，证照进入借出状态')
       } else {
-        await api.rejectBorrowRecord(record.id, approvalForm)
+        await api.rejectBorrowRecord(record.id, payload)
         notify('已拒绝借用申请')
       }
       closeApprovalModal()
@@ -319,12 +325,15 @@ export function BorrowPage({ licenses, borrowRecords, reload, notify }) {
               </div>
             </div>
             <div className="form-grid">
-              <Field
-                label="审批人（保管人）"
-                value={approvalForm.approver}
-                onChange={(value) => setApprovalForm((cur) => ({ ...cur, approver: value }))}
-                required
-              />
+              <label className="field full">
+                <span>审批人（保管人，不可修改）</span>
+                <input
+                  type="text"
+                  value={approvalForm.approver}
+                  disabled
+                  style={{ background: '#f1f5f9', color: '#475569', cursor: 'not-allowed' }}
+                />
+              </label>
               <label className="field full">
                 <span>审批备注</span>
                 <textarea

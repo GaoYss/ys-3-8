@@ -75,6 +75,39 @@ class BorrowRecordSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("已过期的证照不能发起借用")
         return value
 
+    def validate_status(self, value):
+        if self.instance is None:
+            return value
+        old_status = self.instance.status
+        new_status = value
+
+        if old_status == BorrowRecord.Status.PENDING:
+            if new_status in (
+                BorrowRecord.Status.BORROWED,
+                BorrowRecord.Status.OVERDUE,
+                BorrowRecord.Status.APPROVED,
+            ):
+                raise serializers.ValidationError(
+                    "待审批申请必须通过审批接口批准后才能进入借出状态，不能直接修改状态"
+                )
+            if new_status == BorrowRecord.Status.RETURNED:
+                raise serializers.ValidationError("待审批申请不能直接标记为已归还")
+
+        if old_status == BorrowRecord.Status.REJECTED:
+            if new_status in (
+                BorrowRecord.Status.BORROWED,
+                BorrowRecord.Status.OVERDUE,
+                BorrowRecord.Status.APPROVED,
+                BorrowRecord.Status.PENDING,
+            ):
+                raise serializers.ValidationError("已拒绝的申请不能重新进入借出或待审批状态")
+
+        if old_status == BorrowRecord.Status.RETURNED:
+            if new_status != BorrowRecord.Status.RETURNED:
+                raise serializers.ValidationError("已归还的记录不能修改状态")
+
+        return value
+
     def validate(self, attrs):
         borrow_date = attrs.get("borrow_date", getattr(self.instance, "borrow_date", None))
         expected_return_date = attrs.get("expected_return_date", getattr(self.instance, "expected_return_date", None))
@@ -87,5 +120,12 @@ class BorrowRecordSerializer(serializers.ModelSerializer):
 
         if self.instance is None:
             attrs["status"] = BorrowRecord.Status.PENDING
+
+        if self.instance is not None:
+            if self.instance.status == BorrowRecord.Status.PENDING:
+                if attrs.get("actual_return_date") is not None:
+                    raise serializers.ValidationError(
+                        {"actual_return_date": "待审批申请不能登记实际归还日期"}
+                    )
 
         return attrs
