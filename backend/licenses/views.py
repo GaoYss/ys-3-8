@@ -124,6 +124,7 @@ class BorrowRecordViewSet(viewsets.ModelViewSet):
         record.status = BorrowRecord.Status.RETURNED
         record.actual_return_date = timezone.localdate()
         record.save()
+        refresh_borrow_status(record)
         serializer = self.get_serializer(record)
         return Response(serializer.data)
 

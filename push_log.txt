@@ -1,0 +1,9 @@
+﻿git : fatal: unable to access 'https://github.com/GaoYss/ys-3-8.git/': Failed to connect to
+ github.com port 443 after 21108 ms: Could not connect to server
+所在位置 行:1 字符: 65
++ ... are\SOLO_DOG_12\solo_dog_12_8\ys-3; git push origin main 2>&1 | Out-F ...
++                                         ~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (fatal: unable t...nnect to server:String) [], 
+    RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 

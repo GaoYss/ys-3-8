@@ -44,6 +44,12 @@ export default function App() {
     loadAll().catch((error) => setToast(error.message))
   }, [])
 
+  const updateBorrowRecord = (id, patch) => {
+    setBorrowRecords((current) =>
+      current.map((record) => (record.id === id ? { ...record, ...patch } : record)),
+    )
+  }
+
   const context = useMemo(
     () => ({
       licenses,
@@ -52,6 +58,7 @@ export default function App() {
       loading,
       reload: loadAll,
       notify: setToast,
+      updateBorrowRecord,
     }),
     [licenses, borrowRecords, stats, loading],
   )

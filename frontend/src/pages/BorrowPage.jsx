@@ -16,7 +16,7 @@ const initialForm = {
   notes: '',
 }
 
-export function BorrowPage({ licenses, borrowRecords, reload, notify }) {
+export function BorrowPage({ licenses, borrowRecords, reload, notify, updateBorrowRecord }) {
   const [form, setForm] = useState(initialForm)
   const [saving, setSaving] = useState(false)
   const [approvalFilter, setApprovalFilter] = useState('')
@@ -59,8 +59,15 @@ export function BorrowPage({ licenses, borrowRecords, reload, notify }) {
   const markReturned = async (record) => {
     try {
       const result = await api.returnBorrowRecord(record.id)
-      await reload()
-      notify(`已登记归还，归还日期：${result.actual_return_date}`)
+      if (updateBorrowRecord) {
+        updateBorrowRecord(record.id, {
+          status: 'returned',
+          computed_status: 'returned',
+          actual_return_date: result.actual_return_date,
+        })
+      }
+      notify(`${record.license_name} 已归还，归还日期：${result.actual_return_date}`)
+      reload()
     } catch (error) {
       notify(error.message)
     }
