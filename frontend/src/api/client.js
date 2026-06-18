@@ -29,5 +29,6 @@ export const api = {
   updateBorrowRecord: (id, data) => request(`/borrow-records/${id}/`, { method: 'PUT', body: JSON.stringify(data) }),
   approveBorrowRecord: (id, data) => request(`/borrow-records/${id}/approve/`, { method: 'POST', body: JSON.stringify(data) }),
   rejectBorrowRecord: (id, data) => request(`/borrow-records/${id}/reject/`, { method: 'POST', body: JSON.stringify(data) }),
+  returnBorrowRecord: (id) => request(`/borrow-records/${id}/return/`, { method: 'POST' }),
   stats: () => request('/stats/'),
 }

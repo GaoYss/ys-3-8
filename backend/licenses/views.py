@@ -112,6 +112,21 @@ class BorrowRecordViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(record)
         return Response(serializer.data)
 
+    @action(detail=True, methods=["post"], url_path="return")
+    def return_record(self, request, pk=None):
+        record = self.get_object()
+        if record.status not in (BorrowRecord.Status.BORROWED, BorrowRecord.Status.OVERDUE):
+            return Response(
+                {"detail": "只有借出中或逾期未还的记录可以登记归还"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        record.status = BorrowRecord.Status.RETURNED
+        record.actual_return_date = timezone.localdate()
+        record.save()
+        serializer = self.get_serializer(record)
+        return Response(serializer.data)
+
 
 @api_view(["GET"])
 def stats_view(_request):

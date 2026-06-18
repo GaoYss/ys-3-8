@@ -93,6 +93,18 @@ class BorrowRecordSerializer(serializers.ModelSerializer):
             if new_status == BorrowRecord.Status.RETURNED:
                 raise serializers.ValidationError("待审批申请不能直接标记为已归还")
 
+        if old_status in (BorrowRecord.Status.BORROWED, BorrowRecord.Status.OVERDUE):
+            if new_status == BorrowRecord.Status.RETURNED:
+                raise serializers.ValidationError(
+                    "归还操作请使用专用归还接口，不能直接修改状态"
+                )
+            if new_status in (
+                BorrowRecord.Status.PENDING,
+                BorrowRecord.Status.APPROVED,
+                BorrowRecord.Status.REJECTED,
+            ):
+                raise serializers.ValidationError("借出中的记录不能回退到审批状态")
+
         if old_status == BorrowRecord.Status.REJECTED:
             if new_status in (
                 BorrowRecord.Status.BORROWED,
@@ -126,6 +138,11 @@ class BorrowRecordSerializer(serializers.ModelSerializer):
                 if attrs.get("actual_return_date") is not None:
                     raise serializers.ValidationError(
                         {"actual_return_date": "待审批申请不能登记实际归还日期"}
+                    )
+            if self.instance.status in (BorrowRecord.Status.BORROWED, BorrowRecord.Status.OVERDUE):
+                if attrs.get("actual_return_date") is not None:
+                    raise serializers.ValidationError(
+                        {"actual_return_date": "归还操作请使用专用归还接口，不能直接修改实际归还日期"}
                     )
 
         return attrs

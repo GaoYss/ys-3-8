@@ -13,8 +13,6 @@ const initialForm = {
   purpose: '',
   borrow_date: new Date().toISOString().slice(0, 10),
   expected_return_date: '',
-  actual_return_date: '',
-  status: 'pending',
   notes: '',
 }
 
@@ -47,9 +45,6 @@ export function BorrowPage({ licenses, borrowRecords, reload, notify }) {
     setSaving(true)
     try {
       const payload = { ...form, license: Number(form.license) }
-      if (!payload.actual_return_date) {
-        payload.actual_return_date = null
-      }
       await api.createBorrowRecord(payload)
       setForm(initialForm)
       await reload()
@@ -62,21 +57,10 @@ export function BorrowPage({ licenses, borrowRecords, reload, notify }) {
   }
 
   const markReturned = async (record) => {
-    const today = new Date().toISOString().slice(0, 10)
     try {
-      await api.updateBorrowRecord(record.id, {
-        license: record.license,
-        borrower: record.borrower,
-        borrower_department: record.borrower_department,
-        purpose: record.purpose,
-        borrow_date: record.borrow_date,
-        expected_return_date: record.expected_return_date,
-        actual_return_date: today,
-        status: 'returned',
-        notes: record.notes,
-      })
+      const result = await api.returnBorrowRecord(record.id)
       await reload()
-      notify('已登记归还')
+      notify(`已登记归还，归还日期：${result.actual_return_date}`)
     } catch (error) {
       notify(error.message)
     }
@@ -115,6 +99,54 @@ export function BorrowPage({ licenses, borrowRecords, reload, notify }) {
     }
   }
 
+  const renderPendingActions = (record) => {
+    const keeper = (record.license_keeper || '').trim()
+    if (!keeper) {
+      return <span style={{ color: '#b45309', fontSize: '13px' }}>未指定保管人，无法审批</span>
+    }
+    return (
+      <div style={{ display: 'flex', gap: '8px' }}>
+        <button
+          className="ghost-button"
+          type="button"
+          onClick={() => openApprovalModal(record, 'approve')}
+          title="批准"
+        >
+          <ThumbsUp size={16} />
+          <span>批准</span>
+        </button>
+        <button
+          className="ghost-button"
+          type="button"
+          onClick={() => openApprovalModal(record, 'reject')}
+          title="拒绝"
+          style={{ color: '#dc2626', background: '#fef2f2' }}
+        >
+          <ThumbsDown size={16} />
+          <span>拒绝</span>
+        </button>
+      </div>
+    )
+  }
+
+  const renderRecordActions = (record) => {
+    switch (record.computed_status) {
+      case 'returned':
+        return <span className="muted">{record.actual_return_date}</span>
+      case 'pending':
+        return renderPendingActions(record)
+      case 'rejected':
+        return <span className="muted">已拒绝</span>
+      default:
+        return (
+          <button className="ghost-button" type="button" onClick={() => markReturned(record)} title="登记归还">
+            <CheckCircle2 size={16} />
+            <span>归还</span>
+          </button>
+        )
+    }
+  }
+
   return (
     <section className="page-stack">
       <div className="page-header">
@@ -147,27 +179,7 @@ export function BorrowPage({ licenses, borrowRecords, reload, notify }) {
                 <span>{record.borrower}</span>
                 <span>{record.license_keeper || '未指定'}</span>
                 <StatusBadge status={record.computed_status} />
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <button
-                    className="ghost-button"
-                    type="button"
-                    onClick={() => openApprovalModal(record, 'approve')}
-                    title="批准"
-                  >
-                    <ThumbsUp size={16} />
-                    <span>批准</span>
-                  </button>
-                  <button
-                    className="ghost-button"
-                    type="button"
-                    onClick={() => openApprovalModal(record, 'reject')}
-                    title="拒绝"
-                    style={{ color: '#dc2626', background: '#fef2f2' }}
-                  >
-                    <ThumbsDown size={16} />
-                    <span>拒绝</span>
-                  </button>
-                </div>
+                {renderPendingActions(record)}
               </div>
             ))}
           </div>
@@ -248,38 +260,7 @@ export function BorrowPage({ licenses, borrowRecords, reload, notify }) {
                   <span>{record.borrower}</span>
                   <span>{record.expected_return_date}</span>
                   <StatusBadge status={record.computed_status} />
-                  {record.computed_status === 'returned' ? (
-                    <span className="muted">{record.actual_return_date}</span>
-                  ) : record.computed_status === 'pending' ? (
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                      <button
-                        className="ghost-button"
-                        type="button"
-                        onClick={() => openApprovalModal(record, 'approve')}
-                        title="批准"
-                      >
-                        <ThumbsUp size={16} />
-                        <span>批准</span>
-                      </button>
-                      <button
-                        className="ghost-button"
-                        type="button"
-                        onClick={() => openApprovalModal(record, 'reject')}
-                        title="拒绝"
-                        style={{ color: '#dc2626', background: '#fef2f2' }}
-                      >
-                        <ThumbsDown size={16} />
-                        <span>拒绝</span>
-                      </button>
-                    </div>
-                  ) : record.computed_status === 'rejected' ? (
-                    <span className="muted">已拒绝</span>
-                  ) : (
-                    <button className="ghost-button" type="button" onClick={() => markReturned(record)} title="登记归还">
-                      <CheckCircle2 size={16} />
-                      <span>归还</span>
-                    </button>
-                  )}
+                  {renderRecordActions(record)}
                 </div>
               ))}
             </div>
